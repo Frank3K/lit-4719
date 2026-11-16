@@ -1,0 +1,28 @@
+diff --git a/development/directives/style-map.js b/development/directives/style-map.js
+index fe9b89076e161a6cbbe63e162b64169974b0c46a..efb15bc6111332742cdfa86b62ab7c9943f0f5e8 100644
+--- a/development/directives/style-map.js
++++ b/development/directives/style-map.js
+@@ -43,10 +43,9 @@ class StyleMapDirective extends Directive {
+     }
+     update(part, [styleInfo]) {
+         const { style } = part.element;
+-        if (this._previousStyleProperties === undefined) {
+-            this._previousStyleProperties = new Set(Object.keys(styleInfo));
+-            return this.render(styleInfo);
+-        }
++        // Apply the first render through the CSSOM too and return noChange (instead of
++        // render()'s string), so lit-html never commits setAttribute('style', ...) -> CSP-safe.
++        this._previousStyleProperties ??= new Set();
+         // Remove old properties that no longer exist in styleInfo
+         for (const name of this._previousStyleProperties) {
+             // If the name isn't in styleInfo or it's null/undefined
+@@ -68,7 +67,8 @@ class StyleMapDirective extends Directive {
+                 this._previousStyleProperties.add(name);
+                 const isImportant = typeof value === 'string' && value.endsWith(importantFlag);
+                 if (name.includes('-') || isImportant) {
+-                    style.setProperty(name, isImportant
++                    // setProperty needs dash-case (lit/lit#5427)
++                    style.setProperty(name.includes('-') ? name : name.replace(/(?:^(webkit|moz|ms|o)|)(?=[A-Z])/g, '-$&').toLowerCase(), isImportant
+                         ? value.slice(0, flagTrim)
+                         : value, isImportant ? important : '');
+                 }
